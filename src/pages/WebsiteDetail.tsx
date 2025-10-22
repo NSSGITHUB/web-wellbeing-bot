@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 interface Website {
@@ -25,6 +25,18 @@ interface Competitor {
   id: string;
   competitor_url: string;
   competitor_name: string | null;
+  overall_score: number | null;
+  speed_score: number | null;
+  backlinks_count: number | null;
+  last_checked_at: string | null;
+}
+
+interface SeoReport {
+  overall_score: number;
+  speed_score: number;
+  backlinks_count: number;
+  structure_issues_count: number;
+  created_at: string;
 }
 
 const WebsiteDetail = () => {
@@ -33,7 +45,10 @@ const WebsiteDetail = () => {
   const [website, setWebsite] = useState<Website | null>(null);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [latestReport, setLatestReport] = useState<SeoReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     loadWebsiteData();
@@ -75,7 +90,60 @@ const WebsiteDetail = () => {
 
     setCompetitors(competitorsData || []);
 
+    // Load latest SEO report
+    const { data: reportData } = await supabase
+      .from("seo_reports")
+      .select("*")
+      .eq("website_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    setLatestReport(reportData);
+
     setLoading(false);
+  };
+
+  const handleGenerateReport = async () => {
+    if (!id) return;
+
+    setGenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke('generate-seo-report', {
+        body: { website_id: id }
+      });
+
+      if (error) throw error;
+
+      toast.success("SEO 報告已生成！");
+      // 重新載入數據
+      await loadWebsiteData();
+    } catch (error: any) {
+      console.error('生成報告錯誤:', error);
+      toast.error(error.message || "生成報告失敗");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSendReport = async () => {
+    if (!id) return;
+
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-seo-report', {
+        body: { website_id: id }
+      });
+
+      if (error) throw error;
+
+      toast.success("報告已發送至您的郵箱！");
+    } catch (error: any) {
+      console.error('發送報告錯誤:', error);
+      toast.error(error.message || "發送報告失敗");
+    } finally {
+      setSending(false);
+    }
   };
 
   const getRankingChange = (current: number | null, previous: number | null) => {
@@ -96,12 +164,12 @@ const WebsiteDetail = () => {
 
   if (!website) return null;
 
-  // Mock SEO data for demo
-  const mockSeoData = {
-    overallScore: 78,
-    speedScore: 85,
-    backlinksCount: 234,
-    structureIssues: 12,
+  // Use latest report or default data
+  const seoData = latestReport || {
+    overall_score: 0,
+    speed_score: 0,
+    backlinks_count: 0,
+    structure_issues_count: 0,
   };
 
   return (
@@ -114,8 +182,35 @@ const WebsiteDetail = () => {
 
         {/* Website header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{website.website_name || website.website_url}</h1>
-          <p className="text-muted-foreground">{website.website_url}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{website.website_name || website.website_url}</h1>
+              <p className="text-muted-foreground">{website.website_url}</p>
+              {latestReport && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  最後更新: {new Date(latestReport.created_at).toLocaleString('zh-TW')}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleGenerateReport}
+                disabled={generating}
+                variant="default"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                {generating ? '生成中...' : '生成報告'}
+              </Button>
+              <Button 
+                onClick={handleSendReport}
+                disabled={sending || !latestReport}
+                variant="outline"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {sending ? '發送中...' : '發送報告'}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* SEO Score Overview */}
@@ -126,7 +221,7 @@ const WebsiteDetail = () => {
               <Globe className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-primary">{mockSeoData.overallScore}</div>
+              <div className="text-3xl font-bold text-primary">{seoData.overall_score}</div>
               <p className="text-xs text-muted-foreground mt-1">SEO健康度</p>
             </CardContent>
           </Card>
@@ -137,7 +232,7 @@ const WebsiteDetail = () => {
               <Zap className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-success">{mockSeoData.speedScore}</div>
+              <div className="text-3xl font-bold text-success">{seoData.speed_score}</div>
               <p className="text-xs text-muted-foreground mt-1">PageSpeed分數</p>
             </CardContent>
           </Card>
@@ -148,7 +243,7 @@ const WebsiteDetail = () => {
               <LinkIcon className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{mockSeoData.backlinksCount}</div>
+              <div className="text-3xl font-bold">{seoData.backlinks_count}</div>
               <p className="text-xs text-muted-foreground mt-1">個連結</p>
             </CardContent>
           </Card>
@@ -159,7 +254,7 @@ const WebsiteDetail = () => {
               <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-warning">{mockSeoData.structureIssues}</div>
+              <div className="text-3xl font-bold text-warning">{seoData.structure_issues_count}</div>
               <p className="text-xs text-muted-foreground mt-1">個問題</p>
             </CardContent>
           </Card>
@@ -217,19 +312,46 @@ const WebsiteDetail = () => {
             ) : (
               <div className="space-y-3">
                 {competitors.map((competitor) => (
-                  <div key={competitor.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{competitor.competitor_name || competitor.competitor_url}</p>
-                      <a 
-                        href={competitor.competitor_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground hover:underline"
-                      >
-                        {competitor.competitor_url}
-                      </a>
+                  <div key={competitor.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-medium">{competitor.competitor_name || competitor.competitor_url}</p>
+                        <a 
+                          href={competitor.competitor_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:underline"
+                        >
+                          {competitor.competitor_url}
+                        </a>
+                      </div>
+                      <Badge variant="outline">追蹤中</Badge>
                     </div>
-                    <Badge variant="outline">追蹤中</Badge>
+                    
+                    {competitor.overall_score ? (
+                      <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t">
+                        <div>
+                          <p className="text-xs text-muted-foreground">整體分數</p>
+                          <p className="text-lg font-bold text-primary">{competitor.overall_score}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">速度分數</p>
+                          <p className="text-lg font-bold text-success">{competitor.speed_score}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">反向連結</p>
+                          <p className="text-lg font-bold">{competitor.backlinks_count}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">尚無數據，請點擊「生成報告」</p>
+                    )}
+                    
+                    {competitor.last_checked_at && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        最後檢測: {new Date(competitor.last_checked_at).toLocaleString('zh-TW')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

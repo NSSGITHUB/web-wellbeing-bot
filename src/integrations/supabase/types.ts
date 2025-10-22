@@ -16,24 +16,36 @@ export type Database = {
     Tables: {
       competitors: {
         Row: {
+          backlinks_count: number | null
           competitor_name: string | null
           competitor_url: string
           created_at: string
           id: string
+          last_checked_at: string | null
+          overall_score: number | null
+          speed_score: number | null
           website_id: string
         }
         Insert: {
+          backlinks_count?: number | null
           competitor_name?: string | null
           competitor_url: string
           created_at?: string
           id?: string
+          last_checked_at?: string | null
+          overall_score?: number | null
+          speed_score?: number | null
           website_id: string
         }
         Update: {
+          backlinks_count?: number | null
           competitor_name?: string | null
           competitor_url?: string
           created_at?: string
           id?: string
+          last_checked_at?: string | null
+          overall_score?: number | null
+          speed_score?: number | null
           website_id?: string
         }
         Relationships: [
