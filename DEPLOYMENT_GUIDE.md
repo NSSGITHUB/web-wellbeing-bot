@@ -8,137 +8,88 @@
 - **Node.js**: 16+ (用於前端構建)
 - **Composer**: PHP 依賴管理工具
 
+## 🚀 快速開始（已配置好的環境）
+
+您的伺服器已配置：
+- **專案路徑**: `/var/www/vhosts/seoreport.ai.com.tw/httpdocs`
+- **網站根目錄**: `/var/www/vhosts/seoreport.ai.com.tw/httpdocs/dist`
+- **資料庫**: nssreport (已配置在 `api/config.php`)
+- **郵件伺服器**: mail.nss.com.tw (已配置)
+
 ## 🚀 部署步驟
 
 ### 1. 資料庫設定
 
 ```bash
 # 登入 MariaDB
-mysql -u root -p
-
-# 創建資料庫
-CREATE DATABASE seo_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-# 創建用戶並授權
-CREATE USER 'seo_user'@'localhost' IDENTIFIED BY 'your_secure_password';
-GRANT ALL PRIVILEGES ON seo_monitor.* TO 'seo_user'@'localhost';
-FLUSH PRIVILEGES;
+mysql -u nssreport -p
 
 # 導入資料庫結構
-USE seo_monitor;
-SOURCE /path/to/database/mariadb-schema.sql;
+USE nssreport;
+SOURCE /var/www/vhosts/seoreport.ai.com.tw/httpdocs/database/mariadb-schema.sql;
 ```
 
-### 2. 後端 API 部署
+資料庫配置已設定在 `api/config.php`：
+- DB_NAME: nssreport
+- DB_USER: nssreport
+- DB_PASS: 95Gzc56k*
+
+### 2. 安裝 PHPMailer
 
 ```bash
 # 進入專案目錄
-cd /var/www/html/your-project
+cd /var/www/vhosts/seoreport.ai.com.tw/httpdocs
 
-# 安裝 PHPMailer
+# 安裝 PHPMailer（如果尚未安裝）
 composer require phpmailer/phpmailer
-
-# 配置 API
-cd api
-cp config.php config.php.backup
-nano config.php
 ```
 
-**修改 `api/config.php` 中的配置：**
+**API 配置已完成：**
+- 資料庫、SMTP、收件信箱都已在 `api/config.php` 中配置好
+- API 資料夾會在 build 時自動複製到 `dist/api`
 
-```php
-// 資料庫配置
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'seo_monitor');
-define('DB_USER', 'seo_user');
-define('DB_PASS', 'your_secure_password');
-
-// SMTP 郵件配置（已配置好）
-define('SMTP_HOST', 'mail.nss.com.tw');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'leo.yen@nss.com.tw');
-define('SMTP_PASSWORD', 'Aselia0419');
-define('SMTP_FROM_EMAIL', 'leo.yen@nss.com.tw');
-
-// 預設收件信箱
-define('DEFAULT_RECIPIENT_EMAIL', 'leo.yen@nss.com.tw');
-
-// API 安全金鑰（請改為複雜字符串）
-define('API_SECRET_KEY', 'your-random-secret-key-here');
-```
-
-### 3. 前端部署
+### 3. 前端構建與部署
 
 ```bash
-# 從 GitHub 克隆專案
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+# 進入專案目錄
+cd /var/www/vhosts/seoreport.ai.com.tw/httpdocs
 
-# 安裝依賴
+# 安裝依賴（首次或更新時）
 npm install
 
-# 配置環境變數
-nano .env.production
-```
-
-**創建 `.env.production` 文件：**
-
-```env
-VITE_API_BASE_URL=https://your-domain.com/api
-VITE_API_SECRET_KEY=your-random-secret-key-here
-```
-
-**構建前端：**
-
-```bash
 # 構建生產版本
 npm run build
-
-# 部署到網站根目錄
-cp -r dist/* /var/www/html/your-project/
 ```
 
-### 4. Nginx/Apache 配置
+**重要說明：**
+- `npm run build` 會自動將 `api` 資料夾複製到 `dist/api`
+- 網站根目錄已指向 `dist`，所以 API 會在 `https://seoreport.ai.com.tw/api/` 可訪問
+- 不需要手動複製檔案
 
-**Nginx 配置示例：**
+### 4. 網站伺服器配置
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/html/your-project;
-    index index.html;
+**您的環境（AlmaLinux + Plesk）：**
 
-    # 前端路由
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+由於網站根目錄已設為 `/var/www/vhosts/seoreport.ai.com.tw/httpdocs/dist`，配置應該已經完成。
 
-    # API 路由
-    location /api/ {
-        rewrite ^/api/(.*)$ /$1 break;
-        try_files $uri $uri/ /api/$1.php;
-        
-        location ~ \.php$ {
-            fastcgi_pass unix:/var/run/php-fpm/php-fpm.sock;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include fastcgi_params;
-        }
-    }
-}
-```
+**確認 PHP 處理 API 請求：**
 
-**Apache 配置示例 (.htaccess)：**
+在 Plesk 中確認：
+1. PHP 版本為 7.4 或以上
+2. 確保 `.htaccess` 或伺服器配置允許處理 `/api/*.php` 請求
+
+**Apache .htaccess（如需要）：**
+
+在 `dist` 資料夾中創建 `.htaccess`：
 
 ```apache
-# 放在專案根目錄
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
     
-    # API 重寫規則
-    RewriteRule ^api/(.*)$ api/$1.php [L]
+    # API 路由
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^api/(.+)\.php$ api/$1.php [L]
     
     # 前端路由
     RewriteRule ^index\.html$ - [L]
@@ -154,15 +105,15 @@ server {
 # 編輯 crontab
 crontab -e
 
-# 添加定時任務
+# 添加定時任務（使用您的實際路徑）
 # 每天早上 8:00 執行報告生成和發送
-0 8 * * * /usr/bin/php /var/www/html/your-project/scripts/daily-report.php
+0 8 * * * /usr/bin/php /var/www/vhosts/seoreport.ai.com.tw/httpdocs/scripts/daily-report.php
 
 # 每週一早上 8:00 執行
-0 8 * * 1 /usr/bin/php /var/www/html/your-project/scripts/weekly-report.php
+0 8 * * 1 /usr/bin/php /var/www/vhosts/seoreport.ai.com.tw/httpdocs/scripts/weekly-report.php
 
 # 每月 1 號早上 8:00 執行
-0 8 1 * * /usr/bin/php /var/www/html/your-project/scripts/monthly-report.php
+0 8 1 * * /usr/bin/php /var/www/vhosts/seoreport.ai.com.tw/httpdocs/scripts/monthly-report.php
 ```
 
 ### 6. 創建定時腳本
@@ -181,7 +132,7 @@ $websites = $stmt->fetchAll();
 
 foreach ($websites as $website) {
     // 生成報告
-    $ch = curl_init("https://your-domain.com/api/generate-seo-report.php");
+    $ch = curl_init("https://seoreport.ai.com.tw/api/generate-seo-report.php");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['website_id' => $website['id']]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -190,7 +141,7 @@ foreach ($websites as $website) {
     curl_close($ch);
     
     // 發送報告
-    $ch = curl_init("https://your-domain.com/api/send-seo-report.php");
+    $ch = curl_init("https://seoreport.ai.com.tw/api/send-seo-report.php");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['website_id' => $website['id']]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -236,25 +187,34 @@ WHERE id = 'website-id';
 
 或在前端管理介面中修改網站設定。
 
-## ⚙️ 前端配置修改
+## ⚙️ 更新與維護流程
 
-如果 API URL 改變，需要修改前端配置：
+**更新代碼後的部署流程：**
 
-1. 編輯 `.env.production`
-2. 修改 `VITE_API_BASE_URL`
-3. 重新構建：`npm run build`
-4. 重新部署
+```bash
+# 1. 拉取最新代碼（如使用 Git）
+cd /var/www/vhosts/seoreport.ai.com.tw/httpdocs
+git pull origin main
+
+# 2. 安裝新依賴（如有更新）
+npm install
+
+# 3. 重新構建
+npm run build
+
+# 完成！dist 資料夾會自動更新，包含最新的前端和 API 文件
+```
 
 ## 🔍 測試部署
 
 ```bash
 # 測試 API
-curl -X POST https://your-domain.com/api/generate-seo-report.php \
+curl -X POST https://seoreport.ai.com.tw/api/generate-seo-report.php \
   -H "Content-Type: application/json" \
   -d '{"website_id":"test-id"}'
 
 # 測試郵件發送
-curl -X POST https://your-domain.com/api/send-seo-report.php \
+curl -X POST https://seoreport.ai.com.tw/api/send-seo-report.php \
   -H "Content-Type: application/json" \
   -d '{"website_id":"test-id"}'
 ```

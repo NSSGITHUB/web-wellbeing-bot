@@ -6,9 +6,9 @@
 
 // 數據庫配置
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'your_database_name');  // 請修改為你的資料庫名稱
-define('DB_USER', 'your_database_user');  // 請修改為你的資料庫用戶名
-define('DB_PASS', 'your_database_password');  // 請修改為你的資料庫密碼
+define('DB_NAME', 'nssreport');
+define('DB_USER', 'nssreport');
+define('DB_PASS', '95Gzc56k*');
 define('DB_CHARSET', 'utf8mb4');
 
 // SMTP 郵件配置
