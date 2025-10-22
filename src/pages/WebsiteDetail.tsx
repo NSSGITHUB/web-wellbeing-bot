@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail, ExternalLink, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail, ExternalLink, CheckCircle, XCircle, Clock, Settings, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { RankingChart } from "@/components/RankingChart";
+import { CompetitorComparisonChart } from "@/components/CompetitorComparisonChart";
+import EditReportFrequencyDialog from "@/components/EditReportFrequencyDialog";
+import AddCompetitorDialog from "@/components/AddCompetitorDialog";
 import { format, subDays } from "date-fns";
 
 interface Website {
@@ -84,6 +87,8 @@ const WebsiteDetail = () => {
   const [sending, setSending] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState(30); // 默認30天
+  const [showEditFrequencyDialog, setShowEditFrequencyDialog] = useState(false);
+  const [showAddCompetitorDialog, setShowAddCompetitorDialog] = useState(false);
 
   useEffect(() => {
     loadWebsiteData();
@@ -327,14 +332,25 @@ const WebsiteDetail = () => {
         {/* Website header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{website.website_name || website.website_url}</h1>
               <p className="text-muted-foreground">{website.website_url}</p>
-              {latestReport && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  最後更新: {new Date(latestReport.created_at).toLocaleString('zh-TW')}
-                </p>
-              )}
+              <div className="flex items-center gap-4 mt-2">
+                {latestReport && (
+                  <p className="text-sm text-muted-foreground">
+                    最後更新: {new Date(latestReport.created_at).toLocaleString('zh-TW')}
+                  </p>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowEditFrequencyDialog(true)}
+                  className="h-auto p-0 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  報表頻率: {website.report_frequency === 'daily' ? '每日' : website.report_frequency === 'weekly' ? '每週' : '每月'}
+                </Button>
+              </div>
             </div>
             <div className="flex gap-3">
               <Button 
@@ -592,16 +608,21 @@ const WebsiteDetail = () => {
               
               <TabsContent value="competitors" className="space-y-4">
                 {competitorKeywords.length > 0 ? (
-                  <RankingChart
-                    title="競爭對手關鍵字排名變化"
-                    description={`過去 ${dateRange} 天的排名趨勢`}
+                  <CompetitorComparisonChart
+                    title="競爭對手關鍵字排名對比"
+                    description={`過去 ${dateRange} 天的排名趨勢對比`}
                     data={rankingHistory
-                      .filter(h => h.competitor_keyword_id)
-                      .map(h => ({
-                        date: h.checked_at,
-                        ranking: h.ranking,
-                        competitorName: `${h.competitor_keywords?.keyword || 'Unknown'}`,
-                      }))}
+                      .filter(h => h.competitor_keyword_id && h.competitor_keywords)
+                      .map(h => {
+                        const competitor = competitors.find(c => c.id === h.competitor_keywords?.competitor_id);
+                        return {
+                          date: h.checked_at,
+                          ranking: h.ranking,
+                          keyword: h.competitor_keywords?.keyword || 'Unknown',
+                          competitorName: competitor?.competitor_name || competitor?.competitor_url || 'Unknown',
+                          competitorId: h.competitor_keywords?.competitor_id || '',
+                        };
+                      })}
                   />
                 ) : (
                   <Card>
@@ -659,8 +680,19 @@ const WebsiteDetail = () => {
         {/* Competitors */}
         <Card>
           <CardHeader>
-            <CardTitle>競爭對手</CardTitle>
-            <CardDescription>追蹤競爭對手的SEO表現</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>競爭對手</CardTitle>
+                <CardDescription>追蹤競爭對手的SEO表現</CardDescription>
+              </div>
+              <Button 
+                onClick={() => setShowAddCompetitorDialog(true)}
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增競爭對手
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {competitors.length === 0 ? (
@@ -714,6 +746,22 @@ const WebsiteDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Dialogs */}
+        <EditReportFrequencyDialog
+          open={showEditFrequencyDialog}
+          onOpenChange={setShowEditFrequencyDialog}
+          websiteId={id!}
+          currentFrequency={website.report_frequency}
+          onSuccess={loadWebsiteData}
+        />
+
+        <AddCompetitorDialog
+          open={showAddCompetitorDialog}
+          onOpenChange={setShowAddCompetitorDialog}
+          websiteId={id!}
+          onSuccess={loadWebsiteData}
+        />
       </div>
     </div>
   );

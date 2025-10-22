@@ -56,8 +56,41 @@ const Dashboard = () => {
       toast.error("載入網站失敗：" + error.message);
     } else {
       setWebsites(data || []);
+      await loadStatistics(data || []);
     }
     setLoading(false);
+  };
+
+  const [averageScore, setAverageScore] = useState<number | null>(null);
+  const [totalIssues, setTotalIssues] = useState<number>(0);
+
+  const loadStatistics = async (websiteList: Website[]) => {
+    if (websiteList.length === 0) return;
+
+    // Load latest reports for all websites
+    const { data: reports } = await supabase
+      .from("seo_reports")
+      .select("website_id, overall_score, structure_issues_count")
+      .in("website_id", websiteList.map(w => w.id))
+      .order("created_at", { ascending: false });
+
+    if (reports && reports.length > 0) {
+      // Get latest report for each website
+      const latestReports = websiteList.map(website => {
+        return reports.find(r => r.website_id === website.id);
+      }).filter(Boolean);
+
+      // Calculate average score
+      const scoresWithData = latestReports.filter(r => r?.overall_score);
+      if (scoresWithData.length > 0) {
+        const avg = scoresWithData.reduce((sum, r) => sum + (r?.overall_score || 0), 0) / scoresWithData.length;
+        setAverageScore(Math.round(avg));
+      }
+
+      // Calculate total issues
+      const total = latestReports.reduce((sum, r) => sum + (r?.structure_issues_count || 0), 0);
+      setTotalIssues(total);
+    }
   };
 
   const handleSignOut = async () => {
@@ -105,7 +138,9 @@ const Dashboard = () => {
               <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--</div>
+              <div className="text-2xl font-bold text-primary">
+                {averageScore !== null ? averageScore : "--"}
+              </div>
               <p className="text-xs text-muted-foreground">SEO健康度</p>
             </CardContent>
           </Card>
@@ -116,7 +151,7 @@ const Dashboard = () => {
               <AlertCircle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--</div>
+              <div className="text-2xl font-bold text-warning">{totalIssues}</div>
               <p className="text-xs text-muted-foreground">需要關注</p>
             </CardContent>
           </Card>
