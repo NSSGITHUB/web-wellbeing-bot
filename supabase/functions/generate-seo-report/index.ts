@@ -61,7 +61,7 @@ serve(async (req) => {
     const backlinksCount = Math.floor(Math.random() * 300) + 100; // 100-400
     const structureIssuesCount = Math.floor(Math.random() * 20) + 5; // 5-25
 
-    // 更新關鍵字排名（模擬數據）
+    // 更新關鍵字排名（模擬數據）並記錄歷史
     if (keywords && keywords.length > 0) {
       for (const keyword of keywords) {
         const previousRanking = keyword.current_ranking;
@@ -75,6 +75,47 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('id', keyword.id);
+        
+        // 記錄排名歷史
+        await supabase
+          .from('keyword_ranking_history')
+          .insert({
+            keyword_id: keyword.id,
+            ranking: newRanking,
+            checked_at: new Date().toISOString(),
+          });
+      }
+    }
+    
+    // 獲取並更新競爭對手的關鍵字
+    const { data: competitorKeywords } = await supabase
+      .from('competitor_keywords')
+      .select('*')
+      .in('competitor_id', competitors?.map(c => c.id) || []);
+    
+    // 更新競爭對手關鍵字排名並記錄歷史
+    if (competitorKeywords && competitorKeywords.length > 0) {
+      for (const ckw of competitorKeywords) {
+        const previousRanking = ckw.current_ranking;
+        const newRanking = Math.max(1, Math.floor(Math.random() * 100) + 1);
+        
+        await supabase
+          .from('competitor_keywords')
+          .update({
+            previous_ranking: previousRanking,
+            current_ranking: newRanking,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', ckw.id);
+        
+        // 記錄競爭對手排名歷史
+        await supabase
+          .from('keyword_ranking_history')
+          .insert({
+            competitor_keyword_id: ckw.id,
+            ranking: newRanking,
+            checked_at: new Date().toISOString(),
+          });
       }
     }
 

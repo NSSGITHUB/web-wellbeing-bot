@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail, ExternalLink, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { RankingChart } from "@/components/RankingChart";
+import { format, subDays } from "date-fns";
 
 interface Website {
   id: string;
@@ -40,17 +43,47 @@ interface SeoReport {
   created_at: string;
 }
 
+interface CompetitorKeyword {
+  id: string;
+  keyword: string;
+  current_ranking: number | null;
+  previous_ranking: number | null;
+  competitor_id: string;
+  competitors?: {
+    competitor_name: string | null;
+    competitor_url: string;
+  };
+}
+
+interface RankingHistory {
+  id: string;
+  ranking: number;
+  checked_at: string;
+  keyword_id: string | null;
+  competitor_keyword_id: string | null;
+  keywords?: {
+    keyword: string;
+  };
+  competitor_keywords?: {
+    keyword: string;
+    competitor_id: string;
+  };
+}
+
 const WebsiteDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [website, setWebsite] = useState<Website | null>(null);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [competitorKeywords, setCompetitorKeywords] = useState<CompetitorKeyword[]>([]);
+  const [rankingHistory, setRankingHistory] = useState<RankingHistory[]>([]);
   const [latestReport, setLatestReport] = useState<SeoReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState(30); // 默認30天
 
   useEffect(() => {
     loadWebsiteData();
@@ -102,6 +135,28 @@ const WebsiteDetail = () => {
       .single();
 
     setLatestReport(reportData);
+    
+    // Load competitor keywords
+    const { data: competitorKeywordsData } = await supabase
+      .from("competitor_keywords")
+      .select("*, competitors(competitor_name, competitor_url)")
+      .in("competitor_id", competitorsData?.map(c => c.id) || []);
+    
+    setCompetitorKeywords(competitorKeywordsData || []);
+    
+    // Load ranking history (default last 30 days)
+    const startDate = subDays(new Date(), dateRange);
+    const { data: historyData } = await supabase
+      .from("keyword_ranking_history")
+      .select(`
+        *,
+        keywords!keyword_id(keyword),
+        competitor_keywords!competitor_keyword_id(keyword, competitor_id)
+      `)
+      .gte("checked_at", startDate.toISOString())
+      .order("checked_at", { ascending: true });
+    
+    setRankingHistory(historyData || []);
 
     setLoading(false);
   };
@@ -476,6 +531,130 @@ const WebsiteDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Ranking History Charts */}
+        {rankingHistory.length > 0 && (
+          <div className="mb-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">排名變化趨勢</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant={dateRange === 7 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateRange(7)}
+                >
+                  7天
+                </Button>
+                <Button
+                  variant={dateRange === 30 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateRange(30)}
+                >
+                  30天
+                </Button>
+                <Button
+                  variant={dateRange === 90 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateRange(90)}
+                >
+                  90天
+                </Button>
+              </div>
+            </div>
+
+            <Tabs defaultValue="keywords" className="w-full">
+              <TabsList>
+                <TabsTrigger value="keywords">網站關鍵字</TabsTrigger>
+                <TabsTrigger value="competitors">競爭對手關鍵字</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="keywords" className="space-y-4">
+                {keywords.length > 0 ? (
+                  <RankingChart
+                    title="網站關鍵字排名變化"
+                    description={`過去 ${dateRange} 天的排名趨勢`}
+                    data={rankingHistory
+                      .filter(h => h.keyword_id && keywords.find(k => k.id === h.keyword_id))
+                      .map(h => ({
+                        date: h.checked_at,
+                        ranking: h.ranking,
+                        keyword: h.keywords?.keyword || 'Unknown',
+                      }))}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="py-8">
+                      <p className="text-muted-foreground text-center">尚無關鍵字排名歷史數據</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="competitors" className="space-y-4">
+                {competitorKeywords.length > 0 ? (
+                  <RankingChart
+                    title="競爭對手關鍵字排名變化"
+                    description={`過去 ${dateRange} 天的排名趨勢`}
+                    data={rankingHistory
+                      .filter(h => h.competitor_keyword_id)
+                      .map(h => ({
+                        date: h.checked_at,
+                        ranking: h.ranking,
+                        competitorName: `${h.competitor_keywords?.keyword || 'Unknown'}`,
+                      }))}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="py-8">
+                      <p className="text-muted-foreground text-center">尚無競爭對手關鍵字排名歷史數據</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
+        {/* Competitor Keywords */}
+        {competitorKeywords.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>競爭對手關鍵字</CardTitle>
+              <CardDescription>追蹤競爭對手的關鍵字排名</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {competitorKeywords.map((ck) => {
+                  const change = getRankingChange(ck.current_ranking, ck.previous_ranking);
+                  const ChangeIcon = change.icon;
+                  
+                  return (
+                    <div key={ck.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{ck.keyword}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {ck.competitors?.competitor_name || ck.competitors?.competitor_url}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold">
+                            {ck.current_ranking || "--"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">當前排名</p>
+                        </div>
+                        <div className={`flex items-center gap-1 ${change.color}`}>
+                          <ChangeIcon className="h-4 w-4" />
+                          <span className="text-sm font-medium">{change.text}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Competitors */}
         <Card>

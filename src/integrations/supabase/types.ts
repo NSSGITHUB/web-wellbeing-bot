@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      competitor_keywords: {
+        Row: {
+          competitor_id: string
+          created_at: string
+          current_ranking: number | null
+          id: string
+          keyword: string
+          previous_ranking: number | null
+          updated_at: string
+        }
+        Insert: {
+          competitor_id: string
+          created_at?: string
+          current_ranking?: number | null
+          id?: string
+          keyword: string
+          previous_ranking?: number | null
+          updated_at?: string
+        }
+        Update: {
+          competitor_id?: string
+          created_at?: string
+          current_ranking?: number | null
+          id?: string
+          keyword?: string
+          previous_ranking?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_keywords_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitors: {
         Row: {
           backlinks_count: number | null
@@ -54,6 +92,48 @@ export type Database = {
             columns: ["website_id"]
             isOneToOne: false
             referencedRelation: "websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      keyword_ranking_history: {
+        Row: {
+          checked_at: string
+          competitor_keyword_id: string | null
+          created_at: string
+          id: string
+          keyword_id: string | null
+          ranking: number
+        }
+        Insert: {
+          checked_at?: string
+          competitor_keyword_id?: string | null
+          created_at?: string
+          id?: string
+          keyword_id?: string | null
+          ranking: number
+        }
+        Update: {
+          checked_at?: string
+          competitor_keyword_id?: string | null
+          created_at?: string
+          id?: string
+          keyword_id?: string | null
+          ranking?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keyword_ranking_history_competitor_keyword_id_fkey"
+            columns: ["competitor_keyword_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_keywords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "keyword_ranking_history_keyword_id_fkey"
+            columns: ["keyword_id"]
+            isOneToOne: false
+            referencedRelation: "keywords"
             referencedColumns: ["id"]
           },
         ]
