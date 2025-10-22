@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail, ExternalLink, CheckCircle, XCircle, Clock, Settings, Plus } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Globe, Zap, Link as LinkIcon, AlertTriangle, RefreshCw, Mail, ExternalLink, CheckCircle, XCircle, Clock, Settings, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { RankingChart } from "@/components/RankingChart";
 import { CompetitorComparisonChart } from "@/components/CompetitorComparisonChart";
 import EditReportFrequencyDialog from "@/components/EditReportFrequencyDialog";
 import EditNotificationEmailDialog from "@/components/EditNotificationEmailDialog";
 import AddCompetitorDialog from "@/components/AddCompetitorDialog";
+import EditCompetitorKeywordsDialog from "@/components/EditCompetitorKeywordsDialog";
 import { format, subDays } from "date-fns";
 
 interface Website {
@@ -92,6 +93,8 @@ const WebsiteDetail = () => {
   const [showEditFrequencyDialog, setShowEditFrequencyDialog] = useState(false);
   const [showEditEmailDialog, setShowEditEmailDialog] = useState(false);
   const [showAddCompetitorDialog, setShowAddCompetitorDialog] = useState(false);
+  const [showEditKeywordsDialog, setShowEditKeywordsDialog] = useState(false);
+  const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
 
   useEffect(() => {
     loadWebsiteData();
@@ -209,6 +212,32 @@ const WebsiteDetail = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleDeleteCompetitor = async (competitorId: string, competitorName: string) => {
+    if (!confirm(`確定要刪除競爭對手「${competitorName}」嗎？相關的關鍵字數據也會一併刪除。`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("competitors")
+        .delete()
+        .eq("id", competitorId);
+
+      if (error) throw error;
+
+      toast.success("競爭對手已刪除");
+      loadWebsiteData();
+    } catch (error: any) {
+      console.error('刪除競爭對手錯誤:', error);
+      toast.error(error.message || "刪除競爭對手失敗");
+    }
+  };
+
+  const handleEditCompetitorKeywords = (competitor: Competitor) => {
+    setSelectedCompetitor(competitor);
+    setShowEditKeywordsDialog(true);
   };
 
   const getRankingChange = (current: number | null, previous: number | null) => {
@@ -714,7 +743,7 @@ const WebsiteDetail = () => {
                 {competitors.map((competitor) => (
                   <div key={competitor.id} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-3">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{competitor.competitor_name || competitor.competitor_url}</p>
                         <a 
                           href={competitor.competitor_url}
@@ -725,7 +754,24 @@ const WebsiteDetail = () => {
                           {competitor.competitor_url}
                         </a>
                       </div>
-                      <Badge variant="outline">追蹤中</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">追蹤中</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditCompetitorKeywords(competitor)}
+                        >
+                          <Settings className="h-4 w-4 mr-1" />
+                          管理關鍵字
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCompetitor(competitor.id, competitor.competitor_name || competitor.competitor_url)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                     
                     {competitor.overall_score ? (
@@ -782,6 +828,16 @@ const WebsiteDetail = () => {
           websiteId={id!}
           onSuccess={loadWebsiteData}
         />
+
+        {selectedCompetitor && (
+          <EditCompetitorKeywordsDialog
+            open={showEditKeywordsDialog}
+            onOpenChange={setShowEditKeywordsDialog}
+            competitorId={selectedCompetitor.id}
+            competitorName={selectedCompetitor.competitor_name || selectedCompetitor.competitor_url}
+            onSuccess={loadWebsiteData}
+          />
+        )}
       </div>
     </div>
   );
