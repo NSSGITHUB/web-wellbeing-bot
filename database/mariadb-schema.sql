@@ -9,6 +9,7 @@ CREATE TABLE profiles (
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
     company_name VARCHAR(255),
+    notification_email VARCHAR(255),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email)

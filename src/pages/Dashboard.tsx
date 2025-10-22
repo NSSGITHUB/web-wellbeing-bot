@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Plus, LogOut, TrendingUp, AlertCircle, Globe } from "lucide-react";
+import { BarChart3, Plus, LogOut, TrendingUp, AlertCircle, Globe, Settings } from "lucide-react";
 import { toast } from "sonner";
 import AddWebsiteDialog from "@/components/AddWebsiteDialog";
 import WebsiteCard from "@/components/WebsiteCard";
+import UserSettingsDialog from "@/components/UserSettingsDialog";
 
 interface Website {
   id: string;
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const [websites, setWebsites] = useState<Website[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -110,10 +112,16 @@ const Dashboard = () => {
             </div>
             <h1 className="text-2xl font-bold text-foreground">SEO 健診平台</h1>
           </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            登出
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setShowSettingsDialog(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              個人設定
+            </Button>
+            <Button variant="ghost" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              登出
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -198,6 +206,10 @@ const Dashboard = () => {
         open={showAddDialog} 
         onOpenChange={setShowAddDialog}
         onSuccess={loadWebsites}
+      />
+      <UserSettingsDialog 
+        open={showSettingsDialog} 
+        onOpenChange={setShowSettingsDialog}
       />
     </div>
   );
