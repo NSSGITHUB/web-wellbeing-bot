@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { RankingChart } from "@/components/RankingChart";
 import { CompetitorComparisonChart } from "@/components/CompetitorComparisonChart";
 import EditReportFrequencyDialog from "@/components/EditReportFrequencyDialog";
+import EditNotificationEmailDialog from "@/components/EditNotificationEmailDialog";
 import AddCompetitorDialog from "@/components/AddCompetitorDialog";
 import { format, subDays } from "date-fns";
 
@@ -19,6 +20,7 @@ interface Website {
   website_url: string;
   website_name: string | null;
   report_frequency: string;
+  notification_email: string;
 }
 
 interface Keyword {
@@ -88,6 +90,7 @@ const WebsiteDetail = () => {
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState(30); // 默認30天
   const [showEditFrequencyDialog, setShowEditFrequencyDialog] = useState(false);
+  const [showEditEmailDialog, setShowEditEmailDialog] = useState(false);
   const [showAddCompetitorDialog, setShowAddCompetitorDialog] = useState(false);
 
   useEffect(() => {
@@ -335,7 +338,7 @@ const WebsiteDetail = () => {
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{website.website_name || website.website_url}</h1>
               <p className="text-muted-foreground">{website.website_url}</p>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex items-center gap-4 mt-2 flex-wrap">
                 {latestReport && (
                   <p className="text-sm text-muted-foreground">
                     最後更新: {new Date(latestReport.created_at).toLocaleString('zh-TW')}
@@ -349,6 +352,15 @@ const WebsiteDetail = () => {
                 >
                   <Settings className="h-3 w-3 mr-1" />
                   報表頻率: {website.report_frequency === 'daily' ? '每日' : website.report_frequency === 'weekly' ? '每週' : '每月'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowEditEmailDialog(true)}
+                  className="h-auto p-0 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Mail className="h-3 w-3 mr-1" />
+                  收信信箱: {website.notification_email}
                 </Button>
               </div>
             </div>
@@ -753,6 +765,14 @@ const WebsiteDetail = () => {
           onOpenChange={setShowEditFrequencyDialog}
           websiteId={id!}
           currentFrequency={website.report_frequency}
+          onSuccess={loadWebsiteData}
+        />
+
+        <EditNotificationEmailDialog
+          open={showEditEmailDialog}
+          onOpenChange={setShowEditEmailDialog}
+          websiteId={id!}
+          currentEmail={website.notification_email}
           onSuccess={loadWebsiteData}
         />
 
