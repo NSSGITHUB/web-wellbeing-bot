@@ -248,8 +248,8 @@ serve(async (req) => {
     const client = new SMTPClient({
       connection: {
         hostname: "mail.nss.com.tw",
-        port: 587,
-        tls: false,
+        port: 465,
+        tls: true,
         auth: {
           username: "leo.yen@nss.com.tw",
           password: "Aselia0419",
