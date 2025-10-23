@@ -260,7 +260,7 @@ serve(async (req) => {
     await client.send({
       from: "no-reply@seoreport.ai.com.tw",
       to: website.notification_email,
-      subject: `SEO 健康檢測報告 - ${website.website_name || website.website_url}`,
+      subject: `SEO健康檢測報告-${website.website_name || website.website_url}`,
       content: "請使用支援 HTML 的郵件客戶端查看此報告",
       html: htmlContent,
     });
