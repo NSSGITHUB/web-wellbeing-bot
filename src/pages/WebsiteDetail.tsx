@@ -199,19 +199,11 @@ const WebsiteDetail = () => {
 
     setSending(true);
     try {
-      const response = await fetch('https://seoreport.ai.com.tw/api/send-seo-report.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ website_id: id })
+      const { error } = await supabase.functions.invoke('send-seo-report', {
+        body: { website_id: id }
       });
 
-      const result = await response.json();
-
-      if (!response.ok || result.error) {
-        throw new Error(result.error || '發送失敗');
-      }
+      if (error) throw error;
 
       toast.success("報告已發送至您的郵箱！");
     } catch (error: any) {

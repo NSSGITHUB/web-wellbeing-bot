@@ -247,18 +247,18 @@ serve(async (req) => {
     // 使用 SMTP 發送郵件
     const client = new SMTPClient({
       connection: {
-        hostname: "mail.nss.com.tw",
+        hostname: "webmail.sp6.coowo.com",
         port: 465,
         tls: true,
         auth: {
-          username: "leo.yen@nss.com.tw",
-          password: "Aselia0419",
+          username: "no-reply@seoreport.ai.com.tw",
+          password: "516aU$n8y",
         },
       },
     });
 
     await client.send({
-      from: "leo.yen@nss.com.tw",
+      from: "no-reply@seoreport.ai.com.tw",
       to: website.notification_email,
       subject: `SEO 健康檢測報告 - ${website.website_name || website.website_url}`,
       content: "請使用支援 HTML 的郵件客戶端查看此報告",
