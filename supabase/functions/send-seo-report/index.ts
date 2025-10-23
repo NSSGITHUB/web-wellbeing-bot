@@ -247,7 +247,7 @@ serve(async (req) => {
     // 使用 SMTP 發送郵件
     const client = new SMTPClient({
       connection: {
-        hostname: "sp6.coowo.com",
+        hostname: "sp8.coowo.com",
         port: 465,
         tls: true,
         auth: {
