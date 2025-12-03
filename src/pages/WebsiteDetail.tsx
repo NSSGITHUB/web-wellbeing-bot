@@ -199,16 +199,33 @@ const WebsiteDetail = () => {
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-seo-report', {
+      // Debug: 檢查 Supabase 設定
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      console.log('Supabase URL:', supabaseUrl);
+      
+      if (!supabaseUrl) {
+        throw new Error('Supabase URL 未設定，請檢查環境變數');
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-seo-report', {
         body: { website_id: id }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function 錯誤:', error);
+        throw error;
+      }
 
+      console.log('發送成功:', data);
       toast.success("報告已發送至您的郵箱！");
     } catch (error: any) {
       console.error('發送報告錯誤:', error);
-      toast.error(error.message || "發送報告失敗");
+      // 更詳細的錯誤訊息
+      if (error.message?.includes('<!DOCTYPE')) {
+        toast.error("連接 Edge Function 失敗，請確認環境變數設定正確並重新建置");
+      } else {
+        toast.error(error.message || "發送報告失敗");
+      }
     } finally {
       setSending(false);
     }
