@@ -257,11 +257,15 @@ serve(async (req) => {
       },
     });
 
+    // Use ASCII-safe subject to avoid encoding issues
+    const siteName = website.website_name || website.website_url;
+    const subject = `SEO Report - ${siteName}`;
+
     await client.send({
       from: "no-reply@seoreport.ai.com.tw",
       to: website.notification_email,
-      subject: `SEO健康檢測報告-${website.website_name || website.website_url}`,
-      content: "請使用支援 HTML 的郵件客戶端查看此報告",
+      subject: subject,
+      content: "Please use an HTML-capable email client to view this report.",
       html: htmlContent,
     });
 
