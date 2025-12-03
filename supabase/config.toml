@@ -1,1 +1,10 @@
 project_id = "btfmpejpxrjddvwfjguv"
+
+[functions.generate-seo-report]
+verify_jwt = true
+
+[functions.send-seo-report]
+verify_jwt = true
+
+[functions.scheduled-seo-report]
+verify_jwt = false
