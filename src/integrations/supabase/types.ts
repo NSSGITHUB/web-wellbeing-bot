@@ -138,6 +138,74 @@ export type Database = {
           },
         ]
       }
+      keyword_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          keyword: string
+          updated_at: string
+          user_id: string
+          website_name: string | null
+          website_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keyword: string
+          updated_at?: string
+          user_id: string
+          website_name?: string | null
+          website_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keyword?: string
+          updated_at?: string
+          user_id?: string
+          website_name?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
+      keyword_tracking_history: {
+        Row: {
+          checked_at: string
+          created_at: string
+          id: string
+          ranking: number | null
+          search_volume: number | null
+          tracking_id: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          ranking?: number | null
+          search_volume?: number | null
+          tracking_id: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          ranking?: number | null
+          search_volume?: number | null
+          tracking_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keyword_tracking_history_tracking_id_fkey"
+            columns: ["tracking_id"]
+            isOneToOne: false
+            referencedRelation: "keyword_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       keywords: {
         Row: {
           created_at: string
