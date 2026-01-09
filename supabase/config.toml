@@ -8,3 +8,9 @@ verify_jwt = true
 
 [functions.scheduled-seo-report]
 verify_jwt = false
+
+[functions.fetch-keyword-ranking]
+verify_jwt = false
+
+[functions.scheduled-keyword-tracking]
+verify_jwt = false
