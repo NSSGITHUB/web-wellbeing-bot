@@ -15,7 +15,6 @@ interface AddWebsiteDialogProps {
 
 const AddWebsiteDialog = ({ open, onOpenChange, onSuccess }: AddWebsiteDialogProps) => {
   const [loading, setLoading] = useState(false);
-  const [keywords, setKeywords] = useState("");
   const [competitors, setCompetitors] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -48,21 +47,6 @@ const AddWebsiteDialog = ({ open, onOpenChange, onSuccess }: AddWebsiteDialogPro
 
       if (websiteError) throw websiteError;
 
-      // Insert keywords
-      if (keywords.trim()) {
-        const keywordList = keywords.split(",").map(k => k.trim()).filter(k => k);
-        const keywordInserts = keywordList.map(keyword => ({
-          website_id: website.id,
-          keyword,
-        }));
-
-        const { error: keywordError } = await supabase
-          .from("keywords")
-          .insert(keywordInserts);
-
-        if (keywordError) throw keywordError;
-      }
-
       // Insert competitors
       if (competitors.trim()) {
         const competitorList = competitors.split(",").map(c => c.trim()).filter(c => c);
@@ -83,7 +67,6 @@ const AddWebsiteDialog = ({ open, onOpenChange, onSuccess }: AddWebsiteDialogPro
       onSuccess();
       
       // Reset form
-      setKeywords("");
       setCompetitors("");
     } catch (error: any) {
       toast.error("新增失敗：" + error.message);
@@ -149,17 +132,6 @@ const AddWebsiteDialog = ({ open, onOpenChange, onSuccess }: AddWebsiteDialogPro
                   <SelectItem value="monthly">每月</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="keywords">關鍵字</Label>
-              <Input
-                id="keywords"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="關鍵字1, 關鍵字2, 關鍵字3"
-              />
-              <p className="text-sm text-muted-foreground">用逗號分隔多個關鍵字</p>
             </div>
 
             <div className="space-y-2">
